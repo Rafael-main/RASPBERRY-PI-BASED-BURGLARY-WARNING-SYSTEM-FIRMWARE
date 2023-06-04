@@ -43,8 +43,20 @@ def read_rfid():
             # Read the RFID tag
             tag_id, tag_data = reader.read()
 
+            # response_curr_route = requests.get('http://localhost:5000/curr_route')
+            send_tag = requests.post('http://localhost:5000/read_tag', data= {'tag_id' : tag_id})
+            data_check_tag = send_tag.json()
+            # data_curr_route = response_curr_route.json()  
+
+
+            # payload = {'status':'ok','tag_id': tag_id, 'tag_data': tag_data}
+            # if data_curr_route == 'http://127.0.0.1:5000/table':
+            #     requests.post('http://127.0.0.1:5000/add_logs', payload)  
+            # elif data_curr_route == 'http://127.0.0.1:5000/create':
+            #     requests.post('http://127.0.0.1:5000/rfid', payload)
+
             # Validate the RFID tag and control the solenoid lock
-            if tag_id in rfid_tags:
+            if data_check_tag['status'] == 'ok' and data_check_tag['message'] == 'RFID tag exists in the database' and data_check_tag['passage'] == 'committed':
                 # Open the solenoid lock
                 open_lock()
                 # Activate the buzzer twice with an interval of 2 seconds
@@ -54,8 +66,8 @@ def read_rfid():
                 buzz_buzzer(3, 1)
 
             # Send RFID data to the Flask server
-            payload = {'tag_id': tag_id, 'tag_data': tag_data}
-            requests.post('http://localhost:5000/rfid', data=payload)
+            payload = {'status':'ok','tag_id': tag_id, 'tag_data': tag_data}
+            requests.post('http://localhost:5000/rfidtag', data=payload)
 
         except KeyboardInterrupt:
             GPIO.cleanup()
@@ -65,10 +77,25 @@ def read_rfid():
 def handle_motion():
     while True:
         if motion_sensor.motion_detected:
-            # Motion detected, take appropriate action here
-            print("Motion detected")
-        time.sleep(0.1)
+            print("Motion 0 detected")
+            payload = {'message': 'Intruder Detected!'}
+            requests.post('http://localhost:5000/motion', data=payload)
+        time.sleep(0.2)
+def handle_motion_1():
+    while True:
+        if motion_sensor.motion_detected:
+            print("Motion 1 detected")
+            payload = {'message': 'Intruder Detected!'}
+            requests.post('http://localhost:5000/motion', data=payload)
+        time.sleep(0.2)
 
+def handle_motion_2():
+    while True:
+        if motion_sensor.motion_detected:
+            print("Motion 2 detected")
+            payload = {'message': 'Intruder Detected!'}
+            requests.post('http://localhost:5000/motion', data=payload)
+        time.sleep(0.2)
 # Create an instance of MotionSensor
 motion_sensor = MotionSensor(4)
 
@@ -81,6 +108,11 @@ rfid_thread.start()
 motion_thread = threading.Thread(target=handle_motion)
 motion_thread.start()
 
+motion_thread_1 = threading.Thread(target=handle_motion_1)
+motion_thread_1.start()
+
+motion_thread_2 = threading.Thread(target=handle_motion_2)
+motion_thread_2.start()
 
 # Clean up GPIO on exit
 def exit_handler(signal, frame):
